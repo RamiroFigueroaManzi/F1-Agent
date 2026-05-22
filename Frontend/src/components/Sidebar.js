@@ -1,30 +1,20 @@
 import React from 'react';
-// CAMBIO: Importamos 'PanelLeftClose' para hacer el botón de tu captura de pantalla
-import { Plus, MessageSquare, LogOut, User, PanelLeftClose } from 'lucide-react';
+import { Plus, MessageSquare, LogOut, User } from 'lucide-react';
 
+// CAMBIO: Agregamos las propiedades 'isOpen' y 'onClose' al componente
 const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogoutClick, onNuevoChat, onSeleccionarChat }) => {
   return (
     <>
+      {/* CAMBIO: Agregamos clases dinámicas de Tailwind para esconder/mostrar de forma animada en móviles (-left-full / left-0) */}
       <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
         isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
       }`}>
         
-        {/* CAMBIO: BOTÓN PARA CERRAR LA BARRA (Estilo Gemini - Solo visible en celulares) */}
-        <div className="flex md:hidden justify-end w-full mb-2">
-          <button 
-            onClick={onClose}
-            className="text-zinc-500 hover:text-white p-1.5 hover:bg-zinc-900 rounded-lg border border-transparent hover:border-zinc-800 transition-all"
-            title="Cerrar barra lateral"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        </div>
-
         {/* Botón Nuevo Chat */}
-        {/* CAMBIO: mt-12 lo bajamos a mt-2 si está en móvil, porque ahora el botón de cerrar ocupa el espacio superior */}
+        {/* CAMBIO: Se le añade pt-12 md:pt-0 para darle espacio y que el botón flotante de App.js no tape el NUEVO_CHAT al abrir la barra */}
         <button 
           onClick={onNuevoChat} 
-          className="flex items-center gap-3 w-full p-3 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 rounded-lg hover:border-red-600/50 hover:text-white transition-all mb-2 group text-left mt-2 md:mt-0"
+          className="flex items-center gap-3 w-full p-3 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 rounded-lg hover:border-red-600/50 hover:text-white transition-all mb-2 group text-left mt-12 md:mt-0"
         >
           <div className="bg-zinc-800 border border-zinc-700 p-1 rounded shadow-sm group-hover:border-red-500 group-hover:bg-red-600 group-hover:text-white transition-colors">
             <Plus size={16} />
@@ -107,7 +97,7 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
         </div>
       </aside>
 
-      {/* Capa traslúcida (Overlay) de fondo */}
+      {/* CAMBIO: Capa traslúcida (Overlay) de fondo que solo aparece en móvil cuando la barra está abierta. Al tocarla se cierra la barra */}
       {isOpen && (
         <div 
           onClick={onClose} 
