@@ -144,7 +144,7 @@ function App() {
     }]);
 
     try {
-      const respuesta = await fetch('https://tu-backend.onrender.com/preguntar', {
+      const respuesta = await fetch('https://f1-agent-74ik.onrender.com/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta: texto })
