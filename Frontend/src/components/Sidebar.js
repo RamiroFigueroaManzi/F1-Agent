@@ -4,12 +4,12 @@ import { Plus, MessageSquare, LogOut, User, PanelLeftClose } from 'lucide-react'
 const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogoutClick, onNuevoChat, onSeleccionarChat }) => {
   return (
     <>
-      {/* Contenedor principal de la Sidebar: Se queda rígido y no scrollea completo */}
-      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen max-h-screen flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
+      {/* CAMBIO: Usamos h-[100dvh] (Dynamic Viewport Height) para obligar a la barra a respetar el tamaño real que deja el navegador móvil */}
+      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-[100dvh] max-h-[100dvh] flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
         isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
       }`}>
         
-        {/* BOTÓN PARA CERRAR LA BARRA (Estilo Gemini - Solo celular) */}
+        {/* BOTÓN PARA CERRAR LA BARRA (Estilo Gemini) */}
         <div className="flex md:hidden justify-end w-full mb-2 flex-shrink-0">
           <button 
             onClick={onClose}
@@ -20,9 +20,10 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
           </button>
         </div>
 
-        {/* 🏎️ NUEVO CONTENEDOR INTERMEDIO CON SCROLL INTEGRADO 
-            Usa 'scrollbar-thin' y selectores para mantener la estética oscura */}
-        <div className="flex-1 overflow-y-auto pr-1 mb-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+        {/* CONTENEDOR DE SCROLL INTERNO 
+            CAMBIO: Agregamos 'pb-24' (un enorme espacio vacío al final del scroll). 
+            Esto permite que puedas arrastrar el dedo hacia arriba y pasar de largo el contenido, dejando el fondo de la barra totalmente libre de las molestias del navegador móvil */}
+        <div className="flex-1 overflow-y-auto pr-1 mb-2 space-y-4 pb-24 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           
           {/* Botón Nuevo Chat */}
           <button 
@@ -47,7 +48,7 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
               </p>
               <button 
                 onClick={onLoginClick}
-                className="w-full bg-red-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md shadow-red-950/30"
+                className="w-full bg-red-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md shadow-red-900/30"
               >
                 Establecer Conexión
               </button>
@@ -76,9 +77,9 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
           )}
         </div>
 
-        {/* 🛠️ MÓDULO DE PERFIL DE USUARIO: Queda clavado abajo de todo (flex-shrink-0) 
-            y nunca se moverá ni se ocultará con el scroll */}
-        <div className="border-t border-zinc-900 pt-4 mt-auto px-1 flex-shrink-0 bg-[#111217]">
+        {/* MÓDULO DE PERFIL DE USUARIO 
+            CAMBIO: Agregamos 'pb-6 md:pb-0' para que el propio botón tenga un margen interno de seguridad y no se pegue al borde del celular */}
+        <div className="border-t border-zinc-900 pt-4 mt-auto px-1 flex-shrink-0 bg-[#111217] pb-6 md:pb-0">
           {user ? (
             <div className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
