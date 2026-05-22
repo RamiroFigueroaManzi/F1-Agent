@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
+  // eslint-disable-next-line
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
