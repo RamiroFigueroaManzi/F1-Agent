@@ -5,9 +5,9 @@ import { Plus, MessageSquare, LogOut, User, PanelLeftClose } from 'lucide-react'
 const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogoutClick, onNuevoChat, onSeleccionarChat }) => {
   return (
     <>
-      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
-        isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
-      }`}>
+      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen max-h-screen overflow-y-auto flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
+  isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
+}`}>
         
         {/* CAMBIO: BOTÓN PARA CERRAR LA BARRA (Estilo Gemini - Solo visible en celulares) */}
         <div className="flex md:hidden justify-end w-full mb-2">
