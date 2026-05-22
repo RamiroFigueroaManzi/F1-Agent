@@ -4,6 +4,8 @@ import Sidebar from './components/Sidebar';
 import AuthModal from './components/AuthModal';
 import LogoutModal from './components/LogoutModal';
 import ReactMarkdown from 'react-markdown'; 
+// CAMBIO: Importamos los iconos Menu y X para el switch de cabina
+import { Menu, X } from 'lucide-react';
 
 function App() {
   // --- ESTADOS ---
@@ -12,12 +14,15 @@ function App() {
   const [user, setUser] = useState(null);
   const [chatIniciado, setChatIniciado] = useState(false);
   
+  // CAMBIO: Estado para abrir/cerrar la sidebar en pantallas móviles
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
   // --- ESTADOS PARA EL CHAT ---
   const [inputTexto, setInputTexto] = useState(''); 
-  const [mensajes, setMensajes] = useState([]);     
+  const [mensajes, setMensajes] = useState([]);    
 
   // --- ESTADOS PARA EL HISTORIAL ---
-  const [chatId, setChatId] = useState(null);       
+  const [chatId, setChatId] = useState(null);      
   const [historial, setHistorial] = useState([]);   
 
   // --- FUNCIÓN PARA CARGAR EL HISTORIAL ---
@@ -85,6 +90,8 @@ function App() {
     try {
       setChatId(idDelChat);
       setChatIniciado(true);
+      // Cerramos automáticamente la barra al cambiar de chat en celular
+      setSidebarOpen(false);
       const { data, error } = await supabase
         .from('mensajes')
         .select('*')
@@ -102,6 +109,7 @@ function App() {
     if (!texto.trim()) return;
 
     setChatIniciado(true);
+    setSidebarOpen(false); // Cerramos barra al enviar consulta en celular
     let currentChatId = chatId;
 
     if (user && !currentChatId) {
@@ -157,9 +165,12 @@ function App() {
   return (
     <div className="flex min-h-screen bg-[#0a0b0d] font-sans text-zinc-100 selection:bg-red-600 selection:text-white">
       
+      {/* CAMBIO: Pasamos el estado de apertura y cierre a la barra lateral */}
       <Sidebar 
         user={user} 
         historial={historial}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={() => setIsLogoutOpen(true)}
         onSeleccionarChat={handleSeleccionarChat}
@@ -167,15 +178,26 @@ function App() {
           setChatIniciado(false);
           setMensajes([]); 
           setChatId(null); 
+          setSidebarOpen(false); // Cerramos barra al presionar nuevo chat
         }}
       />
 
-      {/* ÁREA DE CONTENIDO */}
-      <div className="flex-1 ml-[260px] relative flex flex-col h-screen overflow-hidden">
+      {/* CAMBIO: Botón Interruptor Flotante (Oculto en desktop `md:hidden`, visible en celular) */}
+      <button 
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="md:hidden fixed top-4 left-4 z-40 bg-red-600 hover:bg-red-700 text-white p-2.5 rounded-lg border border-red-500 shadow-lg transition-transform active:scale-95"
+        title="Consola de Telemetría"
+      >
+        {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      {/* CAMBIO: Eliminamos ml-[260px] fijo por uno condicional (ml-0 en celular, ml-[260px] en desktop) */}
+      <div className="flex-1 ml-0 md:ml-[260px] relative flex flex-col h-screen overflow-hidden">
         
         {/* HEADER */}
         {!user && (
-          <nav className="absolute top-0 right-0 p-6 flex items-center gap-4 z-10">
+          // CAMBIO: pr-6 a pr-6 pt-16 md:pt-6 para que las opciones no se pisen con el botón flotante en móvil
+          <nav className="absolute top-0 right-0 p-6 pt-16 md:pt-6 flex items-center gap-4 z-10">
             <button onClick={() => setIsAuthOpen(true)} className="bg-red-600 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-md shadow-red-900/20 active:scale-[0.98]">
               Iniciar sesión
             </button>
@@ -186,7 +208,8 @@ function App() {
         )}
 
         {/* CONTENIDO CENTRAL */}
-        <main className={`flex-1 flex flex-col items-center px-4 relative h-full w-full ${chatIniciado ? 'justify-start' : 'justify-center'}`}>
+        {/* CAMBIO: pt-20 md:pt-0 para darle aire al header inicial en celulares */}
+        <main className={`flex-1 flex flex-col items-center px-4 pt-20 md:pt-0 relative h-full w-full ${chatIniciado ? 'justify-start' : 'justify-center'}`}>
           
           {/* TÍTULO INICIAL */}
           {!chatIniciado && (
@@ -195,24 +218,25 @@ function App() {
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                 FIA RAG Engine Conectado
               </div>
-              <h1 className="text-[44px] font-black text-white tracking-tight uppercase">
+              <h1 className="text-3xl md:text-[44px] font-black text-white tracking-tight uppercase leading-tight">
                 F1 <span className="text-red-600 font-extrabold">Agent</span>
               </h1>
-              <p className="text-zinc-500 text-sm font-mono mt-1">Soporte Técnico Especializado en Reglamentos de Carreras 2026</p>
+              <p className="text-zinc-500 text-xs md:text-sm font-mono mt-2">Soporte Técnico Especializado en Reglamentos de Carreras 2026</p>
             </div>
           )}
 
           {/* ÁREA DE CHAT COMPONENTES OSCUROS */}
           {chatIniciado && (
-            <div className="w-full max-w-3xl h-[calc(100vh-180px)] overflow-y-auto pt-10 pb-12 pr-2 space-y-6 scroll-smooth">
+            // CAMBIO: pt-10 a pt-12 md:pt-10 para no pisarse con el botón móvil
+            <div className="w-full max-w-3xl h-[calc(100vh-180px)] overflow-y-auto pt-12 md:pt-10 pb-12 pr-2 space-y-6 scroll-smooth">
               {mensajes.map((msg) => (
-                <div key={msg.id} className="flex gap-4 items-start animate-in fade-in slide-in-from-bottom-3 duration-300">
+                <div key={msg.id} className="flex gap-3 md:gap-4 items-start animate-in fade-in slide-in-from-bottom-3 duration-300">
                   
                   {/* AVATARES DEPORTIVOS */}
-                  <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden shadow-md">
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden shadow-md">
                     {msg.rol === 'usuario' ? (
                       <div className="bg-zinc-800 border border-zinc-700 w-full h-full flex items-center justify-center text-zinc-400">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M2 10h20"/><path d="M21.2 14.8a10 10 0 1 0-18.4 0"/><path d="M12 2a10 10 0 0 1 7.5 16.5L12 22l-7.5-3.5A10 10 0 0 1 12 2z"/>
                         </svg>
                       </div>
@@ -224,18 +248,18 @@ function App() {
                   </div>
                   
                   {/* BURBUJAS DE TELEMETRÍA */}
-                  <div className={`p-5 rounded-xl max-w-[85%] border transition-all ${
+                  <div className={`p-4 md:p-5 rounded-xl max-w-[88%] md:max-w-[85%] border transition-all ${
                     msg.rol === 'usuario' 
                       ? 'bg-zinc-900/60 border-zinc-800 text-zinc-100 shadow-sm' 
                       : 'bg-[#111217] border-zinc-800/80 border-l-4 border-l-red-600 text-zinc-200 shadow-[0_10px_30px_rgba(225,6,0,0.02)]'
                   }`}>
-                    <div className={`text-[10px] font-mono font-bold tracking-widest uppercase mb-2 ${
+                    <div className={`text-[9px] md:text-[10px] font-mono font-bold tracking-widest uppercase mb-2 ${
                       msg.rol === 'usuario' ? 'text-zinc-500' : 'text-red-500'
                     }`}>
                       {msg.rol === 'usuario' ? '● DRIVER_REQUEST_CH_01' : '▲ F1 Agent'}
                     </div>
 
-                    <div className="prose prose-sm max-w-none prose-zinc text-left text-[14.5px] leading-relaxed space-y-1 text-zinc-300 prose-headings:text-white prose-strong:text-red-500 prose-code:text-red-400">
+                    <div className="prose prose-sm max-w-none prose-zinc text-left text-[13.5px] md:text-[14.5px] leading-relaxed space-y-1 text-zinc-300 prose-headings:text-white prose-strong:text-red-500 prose-code:text-red-400">
                       <ReactMarkdown>
                         {msg.texto}
                       </ReactMarkdown>
@@ -247,37 +271,38 @@ function App() {
           )}
           
           {/* BARRA DE INPUT ESTILO CABINA */}
-          <div className={`w-full max-w-3xl bg-[#111217] rounded-xl border border-zinc-800 p-4 flex items-center gap-3 transition-all ${
+          <div className={`w-full max-w-3xl bg-[#111217] rounded-xl border border-zinc-800 p-3 md:p-4 flex items-center gap-3 transition-all ${
             chatIniciado 
-              ? 'absolute bottom-6 left-1/2 -translate-x-1/2 border-zinc-700/60 shadow-[0_15px_30px_rgba(0,0,0,0.5)] z-20' 
+              ? 'absolute bottom-6 left-1/2 -translate-x-1/2 border-zinc-700/60 shadow-[0_15px_30px_rgba(0,0,0,0.5)] z-20 w-[92%] md:w-full' 
               : 'group focus-within:border-red-600/50 focus-within:shadow-[0_0_20px_rgba(225,6,0,0.05)] shadow-lg'
           }`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse ml-1 flex-shrink-0" title="Telemetría Activa"></div>
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-1 flex-shrink-0" title="Telemetría Activa"></div>
             <input 
               type="text" 
               value={inputTexto}
               onChange={(e) => setInputTexto(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleEnviar(inputTexto)}
               placeholder="Pregunta a Boxes sobre reglamentos de la FIA..." 
-              className="flex-1 bg-transparent outline-none text-zinc-200 ml-1 text-[15px] placeholder-zinc-700 font-sans"
+              className="flex-1 bg-transparent outline-none text-zinc-200 ml-1 text-sm md:text-[15px] placeholder-zinc-700 font-sans"
             />
             <button 
               onClick={() => handleEnviar(inputTexto)}
-              className="bg-zinc-800 p-2.5 rounded-lg hover:bg-red-600 hover:text-white transition-all text-zinc-400 border border-zinc-700 hover:border-red-500"
+              className="bg-zinc-800 p-2 md:p-2.5 rounded-lg hover:bg-red-600 hover:text-white transition-all text-zinc-400 border border-zinc-700 hover:border-red-500"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
             </button>
           </div>
 
           {/* TARJETAS SUGERIDAS BENTO GRID */}
           {!chatIniciado && (
-            <div className="grid grid-cols-2 gap-4 w-full max-w-3xl mt-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            // CAMBIO: grid-cols-2 a grid-cols-1 md:grid-cols-2 para que se apilen verticalmente en celulares
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-3xl mt-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
                <div 
                  onClick={() => handleEnviar("Explícame las reglas del Reglamento Técnico de motores 2026")}
-                 className="bg-[#111217] border border-zinc-800/80 rounded-xl p-5 cursor-pointer hover:border-red-600/40 hover:bg-[#15171f] transition-all text-left group shadow-sm"
+                 className="bg-[#111217] border border-zinc-800/80 rounded-xl p-4 md:p-5 cursor-pointer hover:border-red-600/40 hover:bg-[#15171f] transition-all text-left group shadow-sm"
                >
                  <div className="text-red-500 mb-2">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/><path d="M18 8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="12" r="2"/></svg>
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/><path d="M18 8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"/><circle cx="6" cy="12" r="2"/><circle cx="14" cy="12" r="2"/></svg>
                  </div>
                  <h4 className="text-sm font-bold text-white mb-1 group-hover:text-red-500 transition-colors">Reglamento Técnico</h4>
                  <p className="text-xs text-zinc-500 leading-normal">Unidades de potencia, aerodinámica activa y límites de combustible para el 2026.</p>
@@ -285,10 +310,10 @@ function App() {
 
                <div 
                  onClick={() => handleEnviar("¿Cuáles son las penalizaciones del Reglamento Deportivo?")}
-                 className="bg-[#111217] border border-zinc-800/80 rounded-xl p-5 cursor-pointer hover:border-red-600/40 hover:bg-[#15171f] transition-all text-left group shadow-sm"
+                 className="bg-[#111217] border border-zinc-800/80 rounded-xl p-4 md:p-5 cursor-pointer hover:border-red-600/40 hover:bg-[#15171f] transition-all text-left group shadow-sm"
                >
                  <div className="text-red-500 mb-2">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                  </div>
                  <h4 className="text-sm font-bold text-white mb-1 group-hover:text-red-500 transition-colors">Reglamento Deportivo</h4>
                  <p className="text-xs text-zinc-500 leading-normal">Límites de pista, procedimientos de Safety Car, banderas y sanciones de los comisarios.</p>
