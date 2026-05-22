@@ -136,7 +136,7 @@ function App() {
     }]);
 
     try {
-      const respuesta = await fetch('http://localhost:8000/preguntar', {
+      const respuesta = await fetch('https://tu-backend.onrender.com/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pregunta: texto })
