@@ -1,16 +1,16 @@
 import React from 'react';
-// CAMBIO: Importamos 'PanelLeftClose' para hacer el botón de tu captura de pantalla
 import { Plus, MessageSquare, LogOut, User, PanelLeftClose } from 'lucide-react';
 
 const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogoutClick, onNuevoChat, onSeleccionarChat }) => {
   return (
     <>
-      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen max-h-screen overflow-y-auto flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
-  isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
-}`}>
+      {/* Contenedor principal de la Sidebar: Se queda rígido y no scrollea completo */}
+      <aside className={`w-[260px] bg-[#111217] border-r border-zinc-900 h-screen max-h-screen flex flex-col p-3 fixed top-0 z-50 text-zinc-300 transition-all duration-300 ease-in-out md:left-0 ${
+        isOpen ? 'left-0 shadow-[10px_0_40px_rgba(0,0,0,0.8)]' : '-left-full'
+      }`}>
         
-        {/* CAMBIO: BOTÓN PARA CERRAR LA BARRA (Estilo Gemini - Solo visible en celulares) */}
-        <div className="flex md:hidden justify-end w-full mb-2">
+        {/* BOTÓN PARA CERRAR LA BARRA (Estilo Gemini - Solo celular) */}
+        <div className="flex md:hidden justify-end w-full mb-2 flex-shrink-0">
           <button 
             onClick={onClose}
             className="text-zinc-500 hover:text-white p-1.5 hover:bg-zinc-900 rounded-lg border border-transparent hover:border-zinc-800 transition-all"
@@ -20,39 +20,41 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
           </button>
         </div>
 
-        {/* Botón Nuevo Chat */}
-        {/* CAMBIO: mt-12 lo bajamos a mt-2 si está en móvil, porque ahora el botón de cerrar ocupa el espacio superior */}
-        <button 
-          onClick={onNuevoChat} 
-          className="flex items-center gap-3 w-full p-3 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 rounded-lg hover:border-red-600/50 hover:text-white transition-all mb-2 group text-left mt-2 md:mt-0"
-        >
-          <div className="bg-zinc-800 border border-zinc-700 p-1 rounded shadow-sm group-hover:border-red-500 group-hover:bg-red-600 group-hover:text-white transition-colors">
-            <Plus size={16} />
-          </div>
-          <span className="text-sm font-bold font-mono tracking-tight">NUEVO_CHAT</span>
-        </button>
-
-        {/* Card de Historial para Invitados */}
-        {!user && (
-          <div className="mt-4 p-4 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl shadow-inner">
-            <div className="h-24 w-full bg-gradient-to-br from-red-950/40 to-zinc-900 rounded-xl mb-4 border border-red-900/10 flex items-center justify-center">
-              <span className="text-[10px] font-mono text-red-500 tracking-widest uppercase">Telemetry Locked</span>
+        {/* 🏎️ NUEVO CONTENEDOR INTERMEDIO CON SCROLL INTEGRADO 
+            Usa 'scrollbar-thin' y selectores para mantener la estética oscura */}
+        <div className="flex-1 overflow-y-auto pr-1 mb-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          
+          {/* Botón Nuevo Chat */}
+          <button 
+            onClick={onNuevoChat} 
+            className="flex items-center gap-3 w-full p-3 bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-800 rounded-lg hover:border-red-600/50 hover:text-white transition-all group text-left mt-2 md:mt-0"
+          >
+            <div className="bg-zinc-800 border border-zinc-700 p-1 rounded shadow-sm group-hover:border-red-500 group-hover:bg-red-600 group-hover:text-white transition-colors">
+              <Plus size={16} />
             </div>
-            <h3 className="text-sm font-bold text-zinc-200 mb-1">Historial del Pit Lane</h3>
-            <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
-              Inicia sesión para sincronizar tu consola de ingeniero, archivar directivas de la FIA y guardar tus análisis de carrera.
-            </p>
-            <button 
-              onClick={onLoginClick}
-              className="w-full bg-red-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md shadow-red-900/30"
-            >
-              Establecer Conexión
-            </button>
-          </div>
-        )}
+            <span className="text-sm font-bold font-mono tracking-tight">NUEVO_CHAT</span>
+          </button>
 
-        {/* ÁREA DE HISTORIAL DINÁMICA DE SUPABASE */}
-        <div className="flex-1 overflow-y-auto mt-4 pr-1 scrollbar-thin">
+          {/* Card de Historial para Invitados */}
+          {!user && (
+            <div className="p-4 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl shadow-inner">
+              <div className="h-24 w-full bg-gradient-to-br from-red-950/40 to-zinc-900 rounded-xl mb-4 border border-red-900/10 flex items-center justify-center">
+                <span className="text-[10px] font-mono text-red-500 tracking-widest uppercase">Telemetry Locked</span>
+              </div>
+              <h3 className="text-sm font-bold text-zinc-200 mb-1">Historial del Pit Lane</h3>
+              <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+                Inicia sesión para sincronizar tu consola de ingeniero, archivar directivas de la FIA y guardar tus análisis de carrera.
+              </p>
+              <button 
+                onClick={onLoginClick}
+                className="w-full bg-red-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-red-700 transition-all shadow-md shadow-red-950/30"
+              >
+                Establecer Conexión
+              </button>
+            </div>
+          )}
+
+          {/* ÁREA DE HISTORIAL DINÁMICA DE SUPABASE */}
           {user && historial.length > 0 && (
             <div className="space-y-1">
               <p className="text-[10px] font-bold font-mono text-zinc-600 px-3 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -74,8 +76,9 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
           )}
         </div>
 
-        {/* Perfil de Usuario Abajo */}
-        <div className="border-t border-zinc-900 pt-4 mt-auto px-1">
+        {/* 🛠️ MÓDULO DE PERFIL DE USUARIO: Queda clavado abajo de todo (flex-shrink-0) 
+            y nunca se moverá ni se ocultará con el scroll */}
+        <div className="border-t border-zinc-900 pt-4 mt-auto px-1 flex-shrink-0 bg-[#111217]">
           {user ? (
             <div className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
@@ -111,7 +114,7 @@ const Sidebar = ({ user, historial = [], isOpen, onClose, onLoginClick, onLogout
       {isOpen && (
         <div 
           onClick={onClose} 
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity animate-in fade-in duration-200"
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
         />
       )}
     </>
