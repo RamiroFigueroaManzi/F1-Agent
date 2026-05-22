@@ -1,0 +1,33 @@
+@import "tailwindcss";
+/* ==========================================================================
+   TUNING DE SCROLLBARS ESTILO PADDOCK F1
+   ========================================================================== */
+
+/* 1. Para navegadores modernos basados en Chromium (Chrome, Edge, Opera, Brave) */
+::-webkit-scrollbar {
+  width: 6px;               /* La hacemos ultra delgada y fina */
+  height: 6px;
+}
+
+/* El fondo por donde viaja la barra (el "track") */
+::-webkit-scrollbar-track {
+  background: #0a0b0d;      /* El mismo gris asfalto oscuro de tu app */
+}
+
+/* La barrita que se mueve (el "thumb") */
+::-webkit-scrollbar-thumb {
+  background: #27272a;      /* Un gris zinc oscuro sutil */
+  border-radius: 10px;      /* Bordes redondeados para que no sea tosca */
+  transition: background 0.2s ease;
+}
+
+/* Cuando el usuario pasa el mouse por encima de la barra */
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;      /* ¡Se ilumina en Rojo F1 cuando la tocas! */
+}
+
+/* 2. Para Firefox (Soporte estándar moderno) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #27272a #0a0b0d;
+}
