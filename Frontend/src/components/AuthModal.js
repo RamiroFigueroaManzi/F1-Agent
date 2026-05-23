@@ -4,8 +4,7 @@ import { supabase } from '../lib/supabase';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
-  // eslint-disable-next-line
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // CAMBIO: Quitamos el eslint-disable y lo usaremos bien
 
   if (!isOpen) return null;
 
@@ -13,8 +12,8 @@ const AuthModal = ({ isOpen, onClose }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin, // Vuelve a http://localhost:3000
-        // 🏎️ EL TRUCO DE BOXES: Obliga a Google a mostrar el selector de cuentas siempre
+        // Usa el origen dinámico, que ahora Supabase ya va a aceptar
+        redirectTo: window.location.origin, 
         queryParams: {
           prompt: 'select_account',
           access_type: 'offline'
@@ -26,7 +25,8 @@ const AuthModal = ({ isOpen, onClose }) => {
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
-    loading(true);
+    setLoading(true); // CORRECCIÓN: Se usa 'setLoading' en vez de 'loading'
+    
     const { error } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
@@ -38,12 +38,12 @@ const AuthModal = ({ isOpen, onClose }) => {
       alert("Error: " + error.message);
     } else {
       alert("¡Enlace de telemetría enviado! Revisa tu casilla de correo electrónico.");
+      onClose(); // Cerramos el modal si se envió con éxito
     }
-    loading(false);
+    setLoading(false); // CORRECCIÓN: Se usa 'setLoading'
   };
 
   return (
-    // CAMBIO: Fondo opaco desenfocado oscuro y contenedor con look de fibra de carbono/boxes (#111217)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-[#111217] border border-zinc-800 w-[440px] rounded-xl p-10 relative shadow-2xl shadow-black/80 mx-4">
         
