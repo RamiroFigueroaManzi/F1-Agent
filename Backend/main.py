@@ -157,10 +157,31 @@ async def preguntar_f1(payload: ConsultaChat):
         }
 
     except Exception as e:
-        print("====== ¡EL BACKEND SE ROMPIÓ AQUÍ! ======")
+        print("====== ¡PIT LANE CRASH EN EL BACKEND! ======")
         print(f"Error real: {str(e)}")
-        print("=========================================")
-        return {"respuesta": f"Error interno en el servidor de Python: {str(e)}"}
+        print("============================================")
+        
+        error_texto = str(e).upper()
+        
+        # 🏎️ Si el error que lanzó el SDK de Google contiene la cuota agotada
+        if "429" in error_texto or "RESOURCE_EXHAUSTED" in error_texto:
+            raise HTTPException(
+                status_code=429, 
+                detail="El servidor ocupó todas sus consultas diarias con Google AI Studio."
+            )
+            
+        # 🏎️ Si es un error de timeout o caída del servidor de Google
+        elif "506" in error_texto or "TIMEOUT" in error_texto:
+            raise HTTPException(
+                status_code=506, 
+                detail="Servidor no disponible, pruebe nuevamente en 5 minutos."
+            )
+            
+        # Cualquier otro error genérico de base de datos o sintaxis
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error interno en el servidor de Python: {str(e)}"
+        )
 
 if __name__ == "__main__":
     import uvicorn
