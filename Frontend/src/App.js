@@ -112,6 +112,7 @@ function App() {
     setSidebarOpen(false); // Cerramos barra al enviar consulta en celular
     let currentChatId = chatId;
 
+    // 1. Si es un chat nuevo y el usuario está autenticado, generamos la conversación primero
     if (user && !currentChatId) {
       try {
         const tituloChat = texto.length > 30 ? texto.substring(0, 30) + "..." : texto;
@@ -124,18 +125,28 @@ function App() {
         setChatId(currentChatId); 
         setHistorial(prev => [data, ...prev]); 
       } catch (err) {
-        console.error("Error:", err.message);
+        console.error("Error creando conversación:", err.message);
       }
     }
 
+    // 2. Pintamos la burbuja del piloto inmediatamente en la pantalla
     const nuevoMensajeUsuario = { id: Date.now(), rol: 'usuario', texto: texto };
     setMensajes(prev => [...prev, nuevoMensajeUsuario]);
     setInputTexto('');
 
+    // 🏎️ ESTRATEGIA DE BOXES: Guardamos la pregunta en Supabase ANTES de llamar al Backend
     if (user && currentChatId) {
-      await supabase.from('mensajes').insert([{ conversacion_id: currentChatId, rol: 'usuario', texto: texto }]);
+      try {
+        const { error } = await supabase
+          .from('mensajes')
+          .insert([{ conversacion_id: currentChatId, rol: 'usuario', texto: texto }]);
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error persistiendo mensaje del usuario:", err.message);
+      }
     }
 
+    // 3. Renderizamos el estado de carga/pensando en la interfaz
     const idPensando = Date.now() + 1;
     setMensajes(prev => [...prev, { 
       id: idPensando, 
@@ -143,11 +154,17 @@ function App() {
       texto: '⏳ *DRIVER_INPUT RECIBIDO. Analizando telemetría y directivas técnicas de la FIA... Reajustando mapa de motor...*' 
     }]);
 
+    // 4. Disparamos la consulta al Backend enviando el ID del chat para sincronizar la memoria
+    // Buscamos la sección del fetch dentro de handleEnviar en tu App.js:
     try {
+      // 🏎️ MANIOBRA MAESTRA: Le enviamos el estado 'mensajes' actual para saltear las esperas de la DB
       const respuesta = await fetch('https://f1-agent-74ik.onrender.com/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pregunta: texto })
+        body: JSON.stringify({ 
+          pregunta: texto,
+          historial_mensajes: mensajes // Le inyectamos todo lo hablado en vivo
+        })
       });
       if (!respuesta.ok) throw new Error('Error en el servidor');
       const data = await respuesta.json();
@@ -295,7 +312,6 @@ function App() {
 
           {/* TARJETAS SUGERIDAS BENTO GRID */}
           {!chatIniciado && (
-            // CAMBIO: grid-cols-2 a grid-cols-1 md:grid-cols-2 para que se apilen verticalmente en celulares
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-3xl mt-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
                <div 
                  onClick={() => handleEnviar("Explícame las reglas del Reglamento Técnico de motores 2026")}
