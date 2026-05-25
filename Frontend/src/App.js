@@ -151,7 +151,7 @@ function App() {
 
     try {
       // Intentamos comunicarnos con el servidor local o de Render según tu configuración
-      const respuesta = await fetch('http://localhost:8000/preguntar', {
+      const respuesta = await fetch('https://f1-agent-74ik.onrender.com/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
