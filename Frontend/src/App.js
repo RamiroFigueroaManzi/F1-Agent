@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // CAMBIO: Importamos useRef
 import { supabase } from './lib/supabase'; 
 import Sidebar from './components/Sidebar';
 import AuthModal from './components/AuthModal';
 import LogoutModal from './components/LogoutModal';
 import ReactMarkdown from 'react-markdown'; 
-// CAMBIO: Importamos los iconos Menu y X para el switch de cabina
 import { Menu, X } from 'lucide-react';
 
 function App() {
@@ -13,8 +12,6 @@ function App() {
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [chatIniciado, setChatIniciado] = useState(false);
-  
-  // CAMBIO: Estado para abrir/cerrar la sidebar en pantallas móviles
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // --- ESTADOS PARA EL CHAT ---
@@ -24,6 +21,9 @@ function App() {
   // --- ESTADOS PARA EL HISTORIAL ---
   const [chatId, setChatId] = useState(null);      
   const [historial, setHistorial] = useState([]);   
+
+  // 🏎️ CAMBIO: Referencia para controlar el scroll del contenedor de mensajes
+  const chatEndRef = useRef(null);
 
   // --- FUNCIÓN PARA CARGAR EL HISTORIAL ---
   const cargarHistorial = async (userId) => {
@@ -80,6 +80,13 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // 🏎️ CAMBIO: Efecto de telemetría para forzar el scroll hacia abajo al mutar los mensajes
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [mensajes]);
+
   // --- MANEJADORES ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -90,7 +97,6 @@ function App() {
     try {
       setChatId(idDelChat);
       setChatIniciado(true);
-      // Cerramos automáticamente la barra al cambiar de chat en celular
       setSidebarOpen(false);
       const { data, error } = await supabase
         .from('mensajes')
@@ -109,10 +115,9 @@ function App() {
     if (!texto.trim()) return;
 
     setChatIniciado(true);
-    setSidebarOpen(false); // Cerramos barra al enviar consulta en celular
+    setSidebarOpen(false); 
     let currentChatId = chatId;
 
-    // 1. Si es un chat nuevo y el usuario está autenticado, generamos la conversación primero
     if (user && !currentChatId) {
       try {
         const tituloChat = texto.length > 30 ? texto.substring(0, 30) + "..." : texto;
@@ -125,28 +130,18 @@ function App() {
         setChatId(currentChatId); 
         setHistorial(prev => [data, ...prev]); 
       } catch (err) {
-        console.error("Error creando conversación:", err.message);
+        console.error("Error:", err.message);
       }
     }
 
-    // 2. Pintamos la burbuja del piloto inmediatamente en la pantalla
     const nuevoMensajeUsuario = { id: Date.now(), rol: 'usuario', texto: texto };
     setMensajes(prev => [...prev, nuevoMensajeUsuario]);
     setInputTexto('');
 
-    // 🏎️ ESTRATEGIA DE BOXES: Guardamos la pregunta en Supabase ANTES de llamar al Backend
     if (user && currentChatId) {
-      try {
-        const { error } = await supabase
-          .from('mensajes')
-          .insert([{ conversacion_id: currentChatId, rol: 'usuario', texto: texto }]);
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error persistiendo mensaje del usuario:", err.message);
-      }
+      await supabase.from('mensajes').insert([{ conversacion_id: currentChatId, rol: 'usuario', texto: texto }]);
     }
 
-    // 3. Renderizamos el estado de carga/pensando en la interfaz
     const idPensando = Date.now() + 1;
     setMensajes(prev => [...prev, { 
       id: idPensando, 
@@ -154,19 +149,28 @@ function App() {
       texto: '⏳ *DRIVER_INPUT RECIBIDO. Analizando telemetría y directivas técnicas de la FIA... Reajustando mapa de motor...*' 
     }]);
 
-    // 4. Disparamos la consulta al Backend enviando el ID del chat para sincronizar la memoria
-    // Buscamos la sección del fetch dentro de handleEnviar en tu App.js:
     try {
-      // 🏎️ MANIOBRA MAESTRA: Le enviamos el estado 'mensajes' actual para saltear las esperas de la DB
-      const respuesta = await fetch('https://f1-agent-74ik.onrender.com/preguntar', {
+      // Intentamos comunicarnos con el servidor local o de Render según tu configuración
+      const respuesta = await fetch('http://localhost:8000/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           pregunta: texto,
-          historial_mensajes: mensajes // Le inyectamos todo lo hablado en vivo
+          historial_mensajes: mensajes 
         })
       });
-      if (!respuesta.ok) throw new Error('Error en el servidor');
+
+      // 🏎️ CAMBIO: MANEJO DE ERRORES DE STATUS (429 y 506)
+      if (respuesta.status === 429) {
+        throw new Error('LIMIT_EXCEEDED');
+      }
+      if (respuesta.status === 506) {
+        throw new Error('SERVER_TIMEOUT');
+      }
+      if (!respuesta.ok) {
+        throw new Error('GENERIC_ERROR');
+      }
+
       const data = await respuesta.json();
 
       if (user && currentChatId) {
@@ -175,14 +179,22 @@ function App() {
 
       setMensajes(prev => prev.map(msg => msg.id === idPensando ? { ...msg, texto: data.respuesta } : msg));
     } catch (error) {
-      setMensajes(prev => prev.map(msg => msg.id === idPensando ? { ...msg, texto: '❌ **PIT LANE ERROR**: Desconexión con el servidor central de telemetría de la FIA. Revisa el archivo `main.py`.' } : msg));
+      // 🏎️ CAMBIO: ASIGNACIÓN DINÁMICA DEL MENSAJE DE ERROR DE BOXES
+      let mensajeErrorFinal = '❌ **PIT LANE ERROR**: Desconexión con el servidor central de telemetría de la FIA. Revisa el archivo `main.py`.';
+      
+      if (error.message === 'LIMIT_EXCEEDED') {
+        mensajeErrorFinal = '🛑 **PIT LANE LIMIT**: El servidor ocupó todas sus consultas diarias con Google AI Studio, vuelva mañana.';
+      } else if (error.message === 'SERVER_TIMEOUT') {
+        mensajeErrorFinal = '⚠️ **TELEMETRY_TIMEOUT**: Servidor no disponible, pruebe nuevamente en 5 minutos.';
+      }
+
+      setMensajes(prev => prev.map(msg => msg.id === idPensando ? { ...msg, texto: mensajeErrorFinal } : msg));
     }
   };
 
   return (
     <div className="flex min-h-screen bg-[#0a0b0d] font-sans text-zinc-100 selection:bg-red-600 selection:text-white">
       
-      {/* CAMBIO: Pasamos el estado de apertura y cierre a la barra lateral */}
       <Sidebar 
         user={user} 
         historial={historial}
@@ -195,11 +207,10 @@ function App() {
           setChatIniciado(false);
           setMensajes([]); 
           setChatId(null); 
-          setSidebarOpen(false); // Cerramos barra al presionar nuevo chat
+          setSidebarOpen(false); 
         }}
       />
 
-      {/* CAMBIO: Botón Interruptor Flotante (Oculto en desktop `md:hidden`, visible en celular) */}
       <button 
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="md:hidden fixed top-4 left-4 z-40 bg-red-600 hover:bg-red-700 text-white p-2.5 rounded-lg border border-red-500 shadow-lg transition-transform active:scale-95"
@@ -208,12 +219,10 @@ function App() {
         {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      {/* CAMBIO: Eliminamos ml-[260px] fijo por uno condicional (ml-0 en celular, ml-[260px] en desktop) */}
       <div className="flex-1 ml-0 md:ml-[260px] relative flex flex-col h-screen overflow-hidden">
         
         {/* HEADER */}
         {!user && (
-          // CAMBIO: pr-6 a pr-6 pt-16 md:pt-6 para que las opciones no se pisen con el botón flotante en móvil
           <nav className="absolute top-0 right-0 p-6 pt-16 md:pt-6 flex items-center gap-4 z-10">
             <button onClick={() => setIsAuthOpen(true)} className="bg-red-600 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-md shadow-red-900/20 active:scale-[0.98]">
               Iniciar sesión
@@ -225,10 +234,8 @@ function App() {
         )}
 
         {/* CONTENIDO CENTRAL */}
-        {/* CAMBIO: pt-20 md:pt-0 para darle aire al header inicial en celulares */}
         <main className={`flex-1 flex flex-col items-center px-4 pt-20 md:pt-0 relative h-full w-full ${chatIniciado ? 'justify-start' : 'justify-center'}`}>
           
-          {/* TÍTULO INICIAL */}
           {!chatIniciado && (
             <div className="text-center mb-10 animate-in fade-in zoom-in duration-500">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/10 border border-red-500/20 rounded-full text-red-500 text-xs font-mono font-bold tracking-widest uppercase mb-4">
@@ -244,7 +251,6 @@ function App() {
 
           {/* ÁREA DE CHAT COMPONENTES OSCUROS */}
           {chatIniciado && (
-            // CAMBIO: pt-10 a pt-12 md:pt-10 para no pisarse con el botón móvil
             <div className="w-full max-w-3xl h-[calc(100vh-180px)] overflow-y-auto pt-12 md:pt-10 pb-12 pr-2 space-y-6 scroll-smooth">
               {mensajes.map((msg) => (
                 <div key={msg.id} className="flex gap-3 md:gap-4 items-start animate-in fade-in slide-in-from-bottom-3 duration-300">
@@ -284,6 +290,9 @@ function App() {
                   </div>
                 </div>  
               ))}
+              
+              {/* 🏎️ CAMBIO: El marcador de posición vacío al final del chat para arrastrar el foco del scroll */}
+              <div ref={chatEndRef} />
             </div>
           )}
           
