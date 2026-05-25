@@ -115,7 +115,7 @@ function App() {
     if (!texto.trim()) return;
 
     setChatIniciado(true);
-    setSidebarOpen(false); 
+    setSidebarOpen(false); // Cerramos barra al enviar consulta en celular
     let currentChatId = chatId;
 
     if (user && !currentChatId) {
@@ -130,7 +130,7 @@ function App() {
         setChatId(currentChatId); 
         setHistorial(prev => [data, ...prev]); 
       } catch (err) {
-        console.error("Error:", err.message);
+        console.error("Error creando conversación:", err.message);
       }
     }
 
@@ -145,12 +145,12 @@ function App() {
     const idPensando = Date.now() + 1;
     setMensajes(prev => [...prev, { 
       id: idPensando, 
+      role: 'asistente', // Mantenemos tu prop intacta
       rol: 'asistente', 
       texto: '⏳ *DRIVER_INPUT RECIBIDO. Analizando telemetría y directivas técnicas de la FIA... Reajustando mapa de motor...*' 
     }]);
 
     try {
-      // Intentamos comunicarnos con el servidor local o de Render según tu configuración
       const respuesta = await fetch('https://f1-agent-74ik.onrender.com/preguntar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,12 +160,12 @@ function App() {
         })
       });
 
-      // 🏎️ CAMBIO: MANEJO DE ERRORES DE STATUS (429 y 506)
+      // 🏎️ DETECTOR DE ERRORES DE STATUS EN CALIENTE
       if (respuesta.status === 429) {
-        throw new Error('LIMIT_EXCEEDED');
+        throw new Error('429');
       }
       if (respuesta.status === 506) {
-        throw new Error('SERVER_TIMEOUT');
+        throw new Error('506');
       }
       if (!respuesta.ok) {
         throw new Error('GENERIC_ERROR');
@@ -179,13 +179,14 @@ function App() {
 
       setMensajes(prev => prev.map(msg => msg.id === idPensando ? { ...msg, texto: data.respuesta } : msg));
     } catch (error) {
-      // 🏎️ CAMBIO: ASIGNACIÓN DINÁMICA DEL MENSAJE DE ERROR DE BOXES
+      // 🏎️ ASIGNACIÓN IMPLACABLE Y DINÁMICA DE ERRORES EN BOXES
       let mensajeErrorFinal = '❌ **PIT LANE ERROR**: Desconexión con el servidor central de telemetría de la FIA. Revisa el archivo `main.py`.';
       
-      if (error.message === 'LIMIT_EXCEEDED') {
-        mensajeErrorFinal = '🛑 **PIT LANE LIMIT**: El servidor ocupó todas sus consultas diarias con Google AI Studio, vuelva mañana.';
-      } else if (error.message === 'SERVER_TIMEOUT') {
-        mensajeErrorFinal = '⚠️ **TELEMETRY_TIMEOUT**: Servidor no disponible, pruebe nuevamente en 5 minutos.';
+      // Verificamos si el error provino del status o del mensaje del sistema
+      if (error.message === '429' || error.status === 429) {
+        mensajeErrorFinal = '🛑 **PIT LANE LIMIT**: El servidor ocupó todas sus consultas diarias con google ai studio, vuelva mañana.';
+      } else if (error.message === '506' || error.status === 506) {
+        mensajeErrorFinal = '⚠️ **SERVER_TIMEOUT**: Servidor no disponible, pruebe nuevamente en 5 minutos.';
       }
 
       setMensajes(prev => prev.map(msg => msg.id === idPensando ? { ...msg, texto: mensajeErrorFinal } : msg));
